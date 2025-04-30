@@ -1,0 +1,260 @@
+function S2_Proto_FigSupple3_CT_PPC_v1
+% this mfile plots Supplementary Fig2.
+% loads the mean Coh/PPC across all sessions for Threats &
+% Chews and plots them.  A graph (2X3) is created showing the mean
+% PPC/Coh for both behaviors for medial-lateral and lateral-lateral motor
+% areas, S1 is excluded from this graph! 
+% the other part of the figure can be constructed using
+% Granger_Connectivity_FourNodes. 
+% Positive Clusters were minimal only in M1m-M3 PPC 37-38.5hz,
+% Granger M3-M1m 39-48.5 Hz. The main differences are negative clusters.
+
+%% this program was modified to get the granger graphs 
+% M1--> PMV (straight),  PMV --> M1 (dashed) 
+% M3--> M1 (straight) ,  M1 --> M3 ( dashed) 
+% M3--> PMV (straight) , PMV--> M3 (dashed)
+% Output: 'Supple3_PPC-Granger_CT_v1.dsvg
+
+% updated for Github April 30th, 2025
+ 
+%
+
+clear all
+close all
+
+% ---- Change this for the Dir where the Data are ----
+%TargetDir='/Users/yuriria/Documents/MATLAB/Thor_Analysis/LFP_analysis/Coh/Barney_FromEli/ElieSCode/figs/thor/CT'
+TargetDir='/Users/yuriria/Dropbox/FreiwaldLabMine/code/A_GitHub/Supple_2'; 
+
+cd(TargetDir)
+
+strM='PPC'
+lw=10;
+pvalue=0.05; % for plotting purposes 
+% Load Coherence btw Lateral and Medial Areas
+
+
+% -------- M1-PMV PPC/Coherence -----------
+strAA={'M1m-PMV',  'M1m-M3', 'M3-PMV'};
+
+for thisP=1:3
+
+    load([strM,'_CT_', strAA{thisP},'_thor.mat'])
+    var1; %mean PPC Chew
+    var2; % mean PPC Threat
+    stat.freq;
+    disp([strM,'_CT_', strAA{thisP},'_thor'])
+    disp(['Stats PPC alpha =', num2str(stat.cfg.alpha)])
+    disp(['Stats PPC nperm =', num2str(stat.cfg.numrandomization)])
+    
+
+   [pks, locs] = findpeaks(var1); [ii,ia]=sort(var1(locs),'descend');
+    FreqMaxPk = stat.freq(locs(ia(1:5))); PPCMaxPk = var1(locs(ia(1:5)));
+    disp('Chew')
+    disp([FreqMaxPk' PPCMaxPk'])
+
+    [pks, locs] = findpeaks(var2); [ii,ia]=sort(var2(locs),'descend');
+    FreqMaxPk = stat.freq(locs(ia(1:5))); PPCMaxPk = var2(locs(ia(1:5)));
+    disp('Threat')
+    disp([FreqMaxPk' PPCMaxPk'])
+ 
+
+    figure(1); subplot(2,3,thisP); hold on;
+    plot(stat.freq,var1,'-','linewidth', 2,'Color', [ 0    0.4471    0.7412]) % blue
+    plot(stat.freq,var2,'-','linewidth', 2,'Color', [0.8510    0.3255    0.0980]) % red 
+
+    % % Assess Significant Negative Clusters PPC T>C
+    if isfield(stat,'negclusters')==1 && isempty(stat.negclusters)~=1
+
+        for i=1:size(stat.negclusters,2)
+            alpha=stat.negclusters(i).prob;
+            if alpha<=pvalue;
+                alpha
+                stat.freq(stat.negclusterslabelmat==i)
+                disp('T>C neg')
+                [y,idx1]=ismember(stat.freq(stat.negclusterslabelmat==i), stat.freq);
+                plot(stat.freq(stat.negclusterslabelmat==i), var1(idx1),'Color',[ 0    0.4471    0.7412],'LineWidth', lw); % chew (blue)
+                plot(stat.freq(stat.negclusterslabelmat==i), var2(idx1),'Color',[0.8510    0.3255    0.0980, 0.9],'LineWidth',lw); % threat (red)
+                %pause
+                clear y
+                clear idx1
+                clear alpha
+            end
+        end
+    end
+  
+  
+    xlabel('Freq (Hz)','fontsize',14); ylabel(strM, 'fontsize',14, 'fontname', 'Arial')
+    title(strAA{thisP},'FontSize', 12,'fontname', 'Arial');
+    ax = gca(gcf);
+    ax.XAxis.FontSize = 13;
+    ax.YAxis.FontSize = 13;
+    ax.FontName='Arial'
+    xlim([5 50])
+    clear var*
+    clear stat*
+     
+    if strcmp(strM,'Coh')
+    ylim ([0 1])
+    elseif strcmp(strM,'PPC')
+    end
+end
+
+clear a
+
+% --------- Granger --------
+
+strAA={'M1m-PMV', 'PMV-M1m', 'M1m-M3', 'M3-M1m', 'M3-PMV', 'PMV-M3'};
+strG ='Granger';
+lw=8;
+
+
+figure(1);
+
+for pair=1:6 
+    load([strG,'_CT_',strAA{pair},'_thor.mat']);
+    var1; % mean Granger Chew 
+    var2; % mean Granger Threat 
+    stat.freq;
+    disp([strG,'_CT_',strAA{pair},'_thor'])
+    disp(['Stats G alpha =', num2str(stat.cfg.alpha)])
+    disp(['Stats G nperm =', num2str(stat.cfg.numrandomization)])
+
+     %% Get 2 first max of Granger 
+
+    [pks, locs] = findpeaks(var1); [ii,ia]=sort(var1(locs),'descend');
+    if length(pks)>=5
+        FreqMaxPk = stat.freq(locs(ia(1:5))); GMaxPk = var1(locs(ia(1:5)));
+    else
+        FreqMaxPk = stat.freq(locs(ia(1:length(ia)))); GMaxPk = var1(locs(ia(1:length(ia))));
+    end
+    disp('Granger MaxPkk Chew')
+    disp([FreqMaxPk' GMaxPk'])
+
+    [pks, locs] = findpeaks(var2); [ii,ia]=sort(var2(locs),'descend');
+    FreqMaxPk = stat.freq(locs(ia(1:5))); GMaxPk = var2(locs(ia(1:5)));
+    disp('Granger MaxPkk Threat')
+    disp([FreqMaxPk' GMaxPk'])
+
+
+    if pair==1 || pair==2
+        subplot(2,3,4); hold on;
+    elseif pair==3 || pair==4
+        subplot(2,3,5); hold on;
+    elseif pair==5 || pair ==6
+        subplot(2,3,6); hold on;
+    end
+
+    temp=rem(pair,2);
+   
+    % M1->PMV (1), M3-> M1 (4), M3-->PMV(5) 
+    if pair==1 || pair==4 || pair==5  % for even numbers area1--> area2
+        plot(stat.freq,var1,'-','linewidth', 2, 'Color',[ 0    0.4471    0.7412]); % blue Chew
+        plot(stat.freq,var2,'-','linewidth', 2, 'Color',[0.8510    0.3255    0.0980]); % red Threat
+    elseif pair==2 || pair==3 || pair==6 % for pair numbers area2--> area1
+        plot(stat.freq,var1,'--','linewidth', 2, 'Color',[ 0    0.4471    0.7412]);
+        plot(stat.freq,var2,'--r','linewidth', 2, 'Color',[0.8510    0.3255    0.0980]);
+        xlabel('Freq (Hz)','fontsize', 14);
+        ylabel('Granger','fontsize', 14);
+    end
+
+ % % Assess Significant Negative Clusters Granger 
+   if isfield(stat,'negclusters')==1 && isempty(stat.negclusters)~=1
+    for i=1:size(stat.negclusters,2)
+        alpha=stat.negclusters(i).prob;
+        if alpha<=pvalue
+            alpha;
+            stat.freq(stat.negclusterslabelmat==i);
+            disp('T>C neg')
+            [y,idx1]=ismember(stat.freq(stat.negclusterslabelmat==i), stat.freq);
+            plot(stat.freq(stat.negclusterslabelmat==i),var1(idx1), 'Color',[ 0    0.4471    0.7412],'LineWidth', lw); % Chew blue
+            plot(stat.freq(stat.negclusterslabelmat==i),var2(idx1), 'Color',[0.8510    0.3255    0.0980, 0.9],'LineWidth',lw);% Threat red
+            %pause
+        end
+    end
+   end
+
+
+    xlim([5 50]);
+    ax = gca(gcf);
+    ax.XAxis.FontSize = 13;
+    ax.YAxis.FontSize = 13;
+    ax.FontName='Arial';
+
+    disp([strAA(pair)])
+    disp (pair)
+  
+end
+
+
+x=[4 5 6];  
+thisP = [2 4 6];
+
+for i=1:3
+    subplot(2,3,x(i))
+
+    if x(i)==4 
+
+        plot([25 28], [0.37 0.37],'-','LineWidth', 3.5, 'Color',[ 0    0.4471    0.7412]) % change for yellow
+        text(30, 0.37,['C-',strAA{thisP(i)-1}]);
+
+        plot([25 28], [0.35 0.35],'-r', 'LineWidth', 3.5, 'Color',[0.8510    0.3255    0.0980]) % change for smoked red
+        text(30, 0.35,['T-',strAA{thisP(i)-1}]);
+
+        plot([25 28], [0.30 0.30],'--','LineWidth', 1.5, 'Color',[ 0    0.4471    0.7412]) % change for yellow
+        text(30, 0.30,['C-',strAA{thisP(i)}])
+
+        plot([25 28], [0.27 0.27],'--r','LineWidth', 1.5, 'Color',[0.8510    0.3255    0.0980]) % change for smoked red
+        text(30, 0.27,['T-',strAA{thisP(i)}])
+        ylim([0 0.6])
+        axis tight
+
+    elseif x(i)==5 
+
+        plot([25 28], [0.65 0.65],'--g','LineWidth', 1.5, 'Color',[ 0    0.4471    0.7412]) % yellow
+        text(30, 0.65,['C-',strAA{thisP(i)-1}]);
+
+        plot([25 28], [0.60 0.60],'--r', 'LineWidth', 1.5, 'Color',[0.8510    0.3255    0.0980]) % smoked red
+        text(30, 0.60,['T-',strAA{thisP(i)-1}]);
+
+        plot([25 28], [0.55 0.55],'-g','LineWidth', 3.5, 'Color',[ 0    0.4471    0.7412]) % yellow
+        text(30, 0.55,['C-',strAA{thisP(i)}])
+
+        plot([25 28], [0.50 0.50],'-r','LineWidth', 3.5, 'Color',[0.8510    0.3255    0.0980]) % smoked red
+        text(30, 0.50,['T-',strAA{thisP(i)}])
+        ylim([0 0.8])
+        axis tight
+
+    elseif  x(i)==6
+
+        plot([25 28], [0.37 0.37],'-','LineWidth', 3.5, 'Color',[ 0    0.4471    0.7412]) % change for yellow
+        text(30, 0.37,['C-',strAA{thisP(i)-1}]);
+
+        plot([25 28], [0.35 0.35],'-r', 'LineWidth', 3.5, 'Color',[0.8510    0.3255    0.0980]) % change for smoked red
+        text(30, 0.35,['T-',strAA{thisP(i)-1}]);
+
+        plot([25 28], [0.30 0.30],'--','LineWidth', 1.5, 'Color',[ 0    0.4471    0.7412]) % change for yellow
+        text(30, 0.30,['C-',strAA{thisP(i)}])
+
+        plot([25 28], [0.27 0.27],'--r','LineWidth', 1.5, 'Color',[0.8510    0.3255    0.0980]) % change for smoked red
+        text(30, 0.27,['T-',strAA{thisP(i)}])
+        ylim([0 0.6])
+        axis tight
+    end
+end
+
+
+
+PrintOn=0;
+% set(gcf,'Position', get (0,'Screensize')); %
+% 
+if PrintOn==1 &&  strcmp(strM,'PPC')
+    figure(1); gcf;
+    print('Supple3_PPC-Granger_CT_v1f','-dsvg')
+    print(gcf,'-depsc', 'Supple3_PPC-Granger_CT_v1f')
+    savefig('Supple3_PPC-Granger_CT_v1.fig')
+end
+
+
+
+
